@@ -1,4 +1,4 @@
-EDIPLUG-PY - Pyhton Class for EDIMAX Smart Plug Switch SP-1101W
+EDIPLUG-PY - Python Class for EDIMAX Smart Plug Switch SP-1101W
 ===============================================================
 12.09.2014 Stefan Wendler
 sw@kaltpost.de

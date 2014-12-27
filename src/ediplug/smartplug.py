@@ -318,55 +318,50 @@ class SmartPlug(object):
         :return: python array with scheduling: [[[start_hh:start_mm],[end_hh:end_mm]], ... ]
         """
 
-        mintbl = {'0': 0, 'F': 0, 'E': 3, 'C': 2, '8': 1, '7': 1, '3': 2, '1': 3}
-
+        sched_unpacked = [0] * 60 * 24
         hours = []
 
-        start_time = None
-        end_time = None
-        pos = 0
+        idx_sched = 0
 
-        # print(sched)
+        # first, unpack the packed schedule from the plug
+        for packed in sched:
 
-        while True:
+            int_packed = int(packed, 16)
 
-            # find start time
-            while pos < len(sched) and start_time is None:
+            sched_unpacked[idx_sched+0] = (int_packed >> 3) & 1
+            sched_unpacked[idx_sched+1] = (int_packed >> 2) & 1
+            sched_unpacked[idx_sched+2] = (int_packed >> 1) & 1
+            sched_unpacked[idx_sched+3] = (int_packed >> 0) & 1
 
-                m = sched[pos: pos + 1]
+            idx_sched += 4
 
-                if m > '0':
-                    # print("m", m)
-                    start_time = [abs(pos / 15), (pos % 15) * 4 + mintbl[m]]
-                    # print("start_time", start_time)
+        idx_hours = 0
 
-                pos += 1
+        hour = 0
+        min = 0
 
-            # no (more) schedule start found
-            if start_time is None:
-                return hours
+        found_range = False
 
-            # find end time
-            while pos < len(sched) and end_time is None:
+        # second build time array from unpacked schedule
+        for m in sched_unpacked:
 
-                m = sched[pos: pos + 1]
+            if m == 1 and not found_range:
+                found_range = True
+                hours.append([[hour, min], [23, 59]])
 
-                if m < 'F':
-                    end_time = [abs(pos / 15), (pos % 15) * 4 + mintbl[m]]
-                    # print("end_time", end_time)
+            elif m == 0 and found_range:
+                found_range = False
+                hours[idx_hours][1][0] = hour
+                hours[idx_hours][1][1] = min
+                idx_hours += 1
 
-                pos += 1
+            min += 1
 
-            # no (more) schedule end found
-            if end_time is None:
-                end_time = [23, 59]
-                hours.append([start_time, end_time])
-                return hours
+            if min > 59:
+                min = 0
+                hour += 1
 
-            hours.append([start_time, end_time])
-
-            start_time = None
-            end_time = None
+        return hours
 
     def _render_schedule(self, hours):
 
@@ -380,78 +375,27 @@ class SmartPlug(object):
         :return: scheduling string (of one day) as needed by plug
         """
 
-        sched = ''
+        sched = [0] * 60 * 24
+        sched_str = ''
 
-        pos = 0
+        # first, set every minute we found a schedule to 1 in the sched array
+        for times in hours:
 
-        while pos < (15 * 24):
+            idx_start = times[0][0] * 60 + times[0][1]
+            idx_end = times[1][0] * 60 + times[1][1]
 
-            m = '0'
+            if idx_end < idx_start:
+                idx_end = 60 * 24
 
-            hour = abs(pos / 15)
-            minute = (pos % 15) * 4
-            absmin = hour * 60 + minute + 4
+            for i in range(idx_start, idx_end):
+                sched[i] = 1
 
-            for times in hours:
+        # second, pack the minute array from above into the plug format and make a string out of it
+        for i in range(0, 60 * 24, 4):
+            packed = (sched[i] << 3) + (sched[i+1] << 2) + (sched[i+2] << 1) + (sched[i+3] << 0)
+            sched_str += "%X" % packed
 
-                if len(times) == 0:
-                    break
-
-                absmin_start = times[0][0] * 60 + times[0][1]
-                absmin_end = times[1][0] * 60 + times[1][1]
-
-                if absmin >= absmin_start and absmin <= absmin_end:
-
-                    # print(" * %02d:%02d - %02d:%02d" % (times[0][0], times[0][1], times[1][0], times[1][1]))
-                    # print("hour", hour, "minute", minute)
-                    # print("delta1", absmin - absmin_start)
-                    # print("delta2", absmin_end - absmin)
-
-                    if absmin - absmin_start == 1:
-                        m = '1'
-                    elif absmin - absmin_start == 2:
-                        m = '3'
-                    elif absmin - absmin_start == 3:
-                        m = '7'
-                    elif absmin - absmin_start == 0:
-
-                        if absmin_end - absmin == 1:
-                            sched += '0'
-                            pos += 1
-                            m = '8'
-                        elif absmin_end - absmin == 2:
-                            sched += '0'
-                            pos += 1
-                            m = 'C'
-                        elif absmin_end - absmin == 3:
-                            sched += '0'
-                            pos += 1
-                            m = 'E'
-                        else:
-                            m = '0'
-
-                    elif absmin_end - absmin == 1:
-                        sched += 'F'
-                        pos += 1
-                        m = '8'
-                    elif absmin_end - absmin == 2:
-                        sched += 'F'
-                        pos += 1
-                        m = 'C'
-                    elif absmin_end - absmin == 3:
-                        sched += 'F'
-                        pos += 1
-                        m = 'E'
-                    else:
-                        m = 'F'
-                    break
-
-            sched += m
-            pos += 1
-
-        # print("sched", sched)
-
-        return sched
+        return sched_str
 
     @property
     def schedule(self):

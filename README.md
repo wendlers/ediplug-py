@@ -23,6 +23,10 @@ General:
 * To pass along the login for the plug use `-l <login>`.
 * To set the password for the login user `-p <password>`
 
+Get device info:
+
+    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -i
+
 Turn plug on:
 
     python smartplug.py -H 172.16.100.75 -l admin -p 1234 -s ON
@@ -121,4 +125,10 @@ Some more information on the plug and its XML API is provided on my website:
 * [Scheduling] (http://gpio.kaltpost.de/?p=2224)
 
 
+Change Log
+----------
+
+* 2015-10-28:	added 'info' property to get device info (thanks Andreas Kainz for the patch!)
+* 2014-12-27:	re-wrote scheduling to correct various scheduling bugs
+* 2014-09-12:	first version
 

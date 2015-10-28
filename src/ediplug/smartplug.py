@@ -41,6 +41,9 @@ class SmartPlug(object):
 
     p = SmartPlug("172.16.100.75", ('admin', '1234'))
 
+    # get device info
+    print(p.info)
+
     # change state of plug
     p.state = "OFF"
     p.state = "ON"
@@ -142,6 +145,27 @@ class SmartPlug(object):
         cmd.appendChild(state)
         state.appendChild(doc.createTextNode(cmdStr))
 
+        doc.documentElement.appendChild(cmd)
+
+        return doc.toxml()
+
+    def _xml_cmd_get_info(self):
+
+        """
+        Create XML representation of a command to query some information
+
+        :type self: object
+        :rtype: str
+        :return: XML representation of command
+        """
+
+        doc = self.domi.createDocument(None, "SMARTPLUG", None)
+        doc.documentElement.setAttribute("id", "edimax")
+
+        cmd = doc.createElement("CMD")
+        cmd.setAttribute("id", "get")
+        si = doc.createElement("SYSTEM_INFO")
+        cmd.appendChild(si)
         doc.documentElement.appendChild(cmd)
 
         return doc.toxml()
@@ -268,6 +292,34 @@ class SmartPlug(object):
             return parseString(res.text)
 
         return None
+
+    @property
+    def info(self):
+
+        """
+        Get device info (vendor, model, version, mac and system name (if available)).
+
+        :type self: object
+        :rtype: dictonary 
+        :return: Dictonary with the following keys: vendor, model, version, mac, name 
+        """
+
+        dom = self._post_xml_dom(self._xml_cmd_get_info())
+
+        vendor = dom.getElementsByTagName("Run.Cus")[0].firstChild.nodeValue
+        model = dom.getElementsByTagName("Run.Model")[0].firstChild.nodeValue
+        version = dom.getElementsByTagName("Run.FW.Version")[0].firstChild.nodeValue
+        mac = dom.getElementsByTagName("Run.LAN.Client.MAC.Address")[0].firstChild.nodeValue
+
+        inf =  {"vendor":vendor, "model":model, "version":version, "mac":mac}
+
+	# not all plugs/fw versions seem to return the system name ...
+	try:
+        	inf["name"] = dom.getElementsByTagName("Device.System.Name")[0].firstChild.nodeValue
+	except IndexError:
+		pass
+
+        return inf 
 
     @property
     def state(self):
@@ -481,6 +533,7 @@ if __name__ == "__main__":
     parser.add_option("-l", "--login",  default="admin", help="Login user to authenticate with SmartPlug")
     parser.add_option("-p", "--password",  default="1234", help="Password to authenticate with SmartPlug")
 
+    parser.add_option("-i", "--info",  action="store_true", help="Get plug information")
     parser.add_option("-g", "--get",  action="store_true", help="Get state of plug")
     parser.add_option("-s", "--set",  help="Set state of plug: ON or OFF")
 
@@ -491,6 +544,11 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
 
     p = SmartPlug(options.host, (options.login, options.password))
+
+    if options.info:
+
+        for i in sorted(p.info.items()):
+            print("%s: %s" % i)
 
     if options.get:
 

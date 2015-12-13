@@ -22,7 +22,6 @@
 # THE SOFTWARE.
 ##
 
-__author__ = 'Stefan Wendler, sw@kaltpost.de'
 
 import requests as req
 import optparse as par
@@ -30,6 +29,8 @@ import logging as log
 
 from xml.dom.minidom import getDOMImplementation
 from xml.dom.minidom import parseString
+
+__author__ = 'Stefan Wendler, sw@kaltpost.de'
 
 
 class SmartPlug(object):
@@ -146,6 +147,32 @@ class SmartPlug(object):
         state.appendChild(doc.createTextNode(cmdStr))
 
         doc.documentElement.appendChild(cmd)
+
+        return doc.toxml()
+
+    def _xml_cmd_get_power(self):
+
+        """
+        Get current power consumption (only SP2101W).
+
+        :type self: object
+        :rtype: str
+        :return: XML representation of command
+        """
+
+        doc = self.domi.createDocument(None, "SMARTPLUG", None)
+        doc.documentElement.setAttribute("id", "edimax")
+
+        cmd = doc.createElement("CMD")
+        cmd.setAttribute("id", "get")
+        pwr = doc.createElement("NOW_POWER")
+        cmd.appendChild(pwr)
+        state = doc.createElement("Device.System.Power.NowCurrent")
+        pwr.appendChild(state)
+
+        doc.documentElement.appendChild(cmd)
+
+        print(doc.toxml())
 
         return doc.toxml()
 
@@ -311,15 +338,15 @@ class SmartPlug(object):
         version = dom.getElementsByTagName("Run.FW.Version")[0].firstChild.nodeValue
         mac = dom.getElementsByTagName("Run.LAN.Client.MAC.Address")[0].firstChild.nodeValue
 
-        inf =  {"vendor":vendor, "model":model, "version":version, "mac":mac}
+        inf = {"vendor":vendor, "model":model, "version":version, "mac":mac}
 
-	# not all plugs/fw versions seem to return the system name ...
-	try:
-        	inf["name"] = dom.getElementsByTagName("Device.System.Name")[0].firstChild.nodeValue
-	except IndexError:
-		pass
+        # not all plugs/fw versions seem to return the system name ...
+        try:
+                inf["name"] = dom.getElementsByTagName("Device.System.Name")[0].firstChild.nodeValue
+        except IndexError:
+            pass
 
-        return inf 
+        return inf
 
     @property
     def state(self):
@@ -357,6 +384,27 @@ class SmartPlug(object):
 
         if res != "OK":
             raise Exception("Failed to communicate with SmartPlug")
+
+    @property
+    def power(self):
+
+        """
+        Get the current power consumption of the SmartPlug.
+
+        :type self: object
+        :rtype: tuple (str, float)
+        :return: tuple (lastToggleTime, current)
+        """
+
+        dom = self._post_xml_dom(self._xml_cmd_get_power())
+
+        try:
+            ltt = dom.getElementsByTagName("Device.System.Power.LastToggleTime")[0].firstChild.nodeValue
+            cur = float(dom.getElementsByTagName("Device.System.Power.NowCurrent")[0].firstChild.nodeValue)
+        except:
+            raise Exception("Failed to communicate with SmartPlug")
+
+        return ltt, cur
 
     def _parse_schedule(self, sched):
 
@@ -536,6 +584,7 @@ if __name__ == "__main__":
     parser.add_option("-i", "--info",  action="store_true", help="Get plug information")
     parser.add_option("-g", "--get",  action="store_true", help="Get state of plug")
     parser.add_option("-s", "--set",  help="Set state of plug: ON or OFF")
+    parser.add_option("-w", "--power",  action="store_true", help="Get plug power consumption (only SP-2101W)")
 
     parser.add_option("-G", "--getsched", action="store_true", help="Get schedule from Plug")
     parser.add_option("-P", "--getschedpy", action="store_true", help="Get schedule from Plug as Python list")
@@ -557,6 +606,10 @@ if __name__ == "__main__":
     elif options.set:
 
         p.state = options.set
+
+    if options.power:
+
+        print("%s: %0.2f" % p.power)
 
     elif options.getsched:
 

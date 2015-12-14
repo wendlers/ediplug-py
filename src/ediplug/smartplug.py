@@ -34,9 +34,8 @@ __author__ = 'Stefan Wendler, sw@kaltpost.de'
 
 
 class SmartPlug(object):
-
     """
-    Simple class to access a "EDIMAX Smart Plug Switch SP-1101W"
+    Simple class to access a "EDIMAX Smart Plug Switch SP1101W/SP2101W"
 
     Usage example when used as library:
 
@@ -52,6 +51,12 @@ class SmartPlug(object):
     # query and print current state of plug
     print(p.state)
 
+    # get power consumption (only SP2101W)
+    print(p.power)
+
+    # get current consumption (only SP2101W)
+    print(p.current)
+
     # read and print complete week schedule from plug
     print(p.schedule.__str__())
 
@@ -61,7 +66,8 @@ class SmartPlug(object):
     # write schedule for the whole week
     p.schedule = [
         {'state': u'ON', 'sched': [[[0, 3], [0, 4]]], 'day': 0},
-        {'state': u'ON', 'sched': [[[0, 10], [0, 20]], [[10, 16], [11, 55]], [[15, 19], [15, 32]], [[21, 0], [23, 8]], [[23, 17], [23, 59]]], 'day': 1},
+        {'state': u'ON', 'sched': [[[0, 10], [0, 20]], [[10, 16], [11, 55]],
+            [[15, 19], [15, 32]], [[21, 0], [23, 8]], [[23, 17], [23, 59]]], 'day': 1},
         {'state': u'OFF', 'sched': [[[19, 59], [21, 1]]], 'day': 2},
         {'state': u'OFF', 'sched': [[[20, 59], [21, 12]]], 'day': 3},
         {'state': u'OFF', 'sched': [], 'day': 4},
@@ -93,7 +99,8 @@ class SmartPlug(object):
 
     set schedule for one day:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -S "{'state': u'ON', 'sched': [[[11, 0], [11, 45]]], 'day': 6}"
+    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -S
+        "{'state': u'ON', 'sched': [[[11, 0], [11, 45]]], 'day': 6}"
 
     set schedule for the whole week:
 
@@ -110,14 +117,14 @@ class SmartPlug(object):
     """
 
     def __init__(self, host, auth):
-
         """
         Create a new SmartPlug instance identified by the given URL.
 
-        :rtype : object
+        :rtype: object
         :param host: The IP/hostname of the SmartPlug. E.g. '172.16.100.75'
         :param auth: User and password to authenticate with the plug. E.g. ('admin', '1234')
         """
+        object.__init__(self)
 
         self.url = "http://%s:10000/smartplug.cgi" % host
         self.auth = auth
@@ -126,17 +133,16 @@ class SmartPlug(object):
         self.log = log.getLogger("SmartPlug")
 
     def _xml_cmd_setget_state(self, cmdId, cmdStr):
-
         """
         Create XML representation of a state command.
 
-        :type self: object
-        :type cmdId: str
-        :type cmdStr: str
-        :rtype: str
-        :param cmdId: Use 'get' to request plug state, use 'setup' change plug state.
-        :param cmdStr: Empty string for 'get', 'ON' or 'OFF' for 'setup'
-        :return: XML representation of command
+        :type self:     object
+        :type cmdId:    str
+        :type cmdStr:   str
+        :rtype:         str
+        :param cmdId:   Use 'get' to request plug state, use 'setup' change plug state.
+        :param cmdStr:  Empty string for 'get', 'ON' or 'OFF' for 'setup'
+        :return:        XML representation of command
         """
 
         assert (cmdId == "setup" and cmdStr in ["ON", "OFF"]) or (cmdId == "get" and cmdStr == "")
@@ -158,7 +164,6 @@ class SmartPlug(object):
         return xml
 
     def _xml_cmd_get_pc(self, what):
-
         """
         Get power or current consumption (only SP2101W).
 
@@ -189,13 +194,12 @@ class SmartPlug(object):
         return xml
 
     def _xml_cmd_get_info(self):
-
         """
         Create XML representation of a command to query some information
 
-        :type self: object
-        :rtype: str
-        :return: XML representation of command
+        :type self:     object
+        :rtype:         str
+        :return:        XML representation of command
         """
 
         doc = self.domi.createDocument(None, "SMARTPLUG", None)
@@ -213,13 +217,12 @@ class SmartPlug(object):
         return xml
 
     def _xml_cmd_get_sched(self):
-
         """
         Create XML representation of a command to query schedule of whole week from plug.
 
-        :type self: object
-        :rtype: str
-        :return: XML representation of command
+        :type self:     object
+        :rtype:         str
+        :return:        XML representation of command
         """
 
         doc = self.domi.createDocument(None, "SMARTPLUG", None)
@@ -229,7 +232,7 @@ class SmartPlug(object):
         cmd.setAttribute("id", "get")
         sched = doc.createElement("SCHEDULE")
         cmd.appendChild(sched)
-        state = doc.createElement("Device.System.Power.State")
+        doc.createElement("Device.System.Power.State")
 
         doc.documentElement.appendChild(cmd)
 
@@ -239,15 +242,14 @@ class SmartPlug(object):
         return xml
 
     def _xml_cmd_set_sched(self, sched_days):
-
         """
         Create XML representation of a command to set scheduling for one day or whole week.
 
-        :type self: object
-        :type sched_days: list
-        :rtype: str
-        :param sched_day: Single day or whole week
-        :return: XML representation of command
+        :type self:         object
+        :type sched_days:   list
+        :rtype:             str
+        :param sched_day:   Single day or whole week
+        :return:            XML representation of command
         """
 
         doc = self.domi.createDocument(None, "SMARTPLUG", None)
@@ -285,15 +287,14 @@ class SmartPlug(object):
         return xml
 
     def _post_xml(self, xml):
-
         """
         Post XML command as multipart file to SmartPlug, parse XML response.
 
-        :type self: object
-        :type xml: str
-        :rtype: str
-        :param xml: XML representation of command (as generated by _xml_cmd)
-        :return: 'OK' on success, 'FAILED' otherwise
+        :type self:     object
+        :type xml:      str
+        :rtype:         str
+        :param xml:     XML representation of command (as generated by _xml_cmd)
+        :return:        'OK' on success, 'FAILED' otherwise
         """
 
         files = {'file': xml}
@@ -322,15 +323,14 @@ class SmartPlug(object):
         return None
 
     def _post_xml_dom(self, xml):
-
         """
         Post XML command as multipart file to SmartPlug, return response as raw dom.
 
-        :type self: object
-        :type xml: str
-        :rtype: object
-        :param xml: XML representation of command (as generated by _xml_cmd)
-        :return: dom representation of XML response
+        :type self:     object
+        :type xml:      str
+        :rtype:         object
+        :param xml:     XML representation of command (as generated by _xml_cmd)
+        :return:        dom representation of XML response
         """
 
         files = {'file': xml}
@@ -347,13 +347,12 @@ class SmartPlug(object):
 
     @property
     def info(self):
-
         """
         Get device info (vendor, model, version, mac and system name (if available)).
 
-        :type self: object
-        :rtype: dictonary 
-        :return: Dictonary with the following keys: vendor, model, version, mac, name 
+        :type self:     object
+        :rtype:         dictonary
+        :return:        dictonary with the following keys: vendor, model, version, mac, name
         """
 
         dom = self._post_xml_dom(self._xml_cmd_get_info())
@@ -375,13 +374,12 @@ class SmartPlug(object):
 
     @property
     def state(self):
-
         """
         Get the current state of the SmartPlug.
 
         :type self: object
-        :rtype: str
-        :return: 'ON' or 'OFF'
+        :rtype:     str
+        :return:    'ON' or 'OFF'
         """
 
         res = self._post_xml(self._xml_cmd_setget_state("get", ""))
@@ -393,13 +391,12 @@ class SmartPlug(object):
 
     @state.setter
     def state(self, value):
-
         """
         Set the state of the SmartPlug
 
-        :type self: object
-        :type value: str
-        :param value: 'ON', 'on', 'OFF' or 'off'
+        :type self:     object
+        :type value:    str
+        :param value:   'ON', 'on', 'OFF' or 'off'
         """
 
         if value == "ON" or value == "on":
@@ -412,7 +409,6 @@ class SmartPlug(object):
 
     @property
     def power(self):
-
         """
         Get the power consumption of the SmartPlug (only SP2101W).
 
@@ -432,7 +428,6 @@ class SmartPlug(object):
 
     @property
     def current(self):
-
         """
         Get the current consumption of the SmartPlug (only SP2101W).
 
@@ -451,15 +446,14 @@ class SmartPlug(object):
         return current
 
     def _parse_schedule(self, sched):
-
         """
         Parse the plugs internal scheduling format string to python array
 
-        :type self: object
-        :type sched: str
-        :rtype: list
-        :param sched: scheduling string (of one day) as returned by plug
-        :return: python array with scheduling: [[[start_hh:start_mm],[end_hh:end_mm]], ... ]
+        :type self:     object
+        :type sched:    str
+        :rtype:         list
+        :param sched:   scheduling string (of one day) as returned by plug
+        :return:        Python array with scheduling: [[[start_hh:start_mm],[end_hh:end_mm]], ... ]
         """
 
         sched_unpacked = [0] * 60 * 24
@@ -508,15 +502,14 @@ class SmartPlug(object):
         return hours
 
     def _render_schedule(self, hours):
-
         """
-        Render python scheduling array back to plugs internal format
+        Render Python scheduling array back to plugs internal format
 
-        :type self: object
-        :type hours: list
-        :rtype: str
-        :param hours: python array with scheduling hours: [[[start_hh:start_mm],[end_hh:end_mm]], ... ]
-        :return: scheduling string (of one day) as needed by plug
+        :type self:     object
+        :type hours:    list
+        :rtype:         str
+        :param hours:   Python array with scheduling hours: [[[start_hh:start_mm],[end_hh:end_mm]], ... ]
+        :return:        scheduling string (of one day) as needed by plug
         """
 
         sched = [0] * 60 * 24
@@ -543,14 +536,13 @@ class SmartPlug(object):
 
     @property
     def schedule(self):
-
         """
         Get scheduling for all days of week from plug as python list.
         Note: it looks like the plug only is able to return a whole week.
 
-        :type self: object
-        :rtype: list
-        :return: List with scheduling for each day of week:
+        :type self:     object
+        :rtype:         list
+        :return:        List with scheduling for each day of week:
 
         [
         {'state': u'ON|OFF', 'sched': [[[hh, mm], [hh, mm]], ...], 'day': 0..6},
@@ -573,10 +565,12 @@ class SmartPlug(object):
 
                 sched.append(
                     {"day": i,
-                     "state": dom_sched.getElementsByTagName("Device.System.Power.Schedule.%d" % i)[0].attributes["value"].
-                            firstChild.nodeValue,
-                     "sched": self._parse_schedule(dom_sched.getElementsByTagName("Device.System.Power.Schedule.%d" % i)[0].
-                            firstChild.nodeValue)})
+                     "state": dom_sched.getElementsByTagName("Device.System.Power.Schedule.%d" % i)[0].attributes[
+                         "value"].
+                         firstChild.nodeValue,
+                     "sched": self._parse_schedule(
+                         dom_sched.getElementsByTagName("Device.System.Power.Schedule.%d" % i)[0].
+                         firstChild.nodeValue)})
 
         except Exception as e:
 
@@ -586,15 +580,14 @@ class SmartPlug(object):
 
     @schedule.setter
     def schedule(self, sched):
-
         """
         Set scheduling for ony day of week or for whole week on the plug.
         Note: it seams not to be possible to schedule anything else then one day or a whole week.
 
-        :type self: object
-        :type sched: list
-        :rtype: str
-        :param sched: Array with scheduling hours for ons day:
+        :type self:     object
+        :type sched:    list
+        :rtype:         str
+        :param sched:   Array with scheduling hours for ons day:
 
                         {'day': 0..6, 'state': 'ON' | 'OFF', [[start_hh:start_mm],[end_hh:end_mm]], ... ]}
 
@@ -649,10 +642,9 @@ if __name__ == "__main__":
 
     if options.info:
 
-        print("Plug info:\n")
+        print("Plug info:")
         for i in sorted(p.info.items()):
             print("- %s: %s" % i)
-        print("")
 
     if options.get:
 
@@ -672,8 +664,8 @@ if __name__ == "__main__":
 
     elif options.getsched:
 
-        days = { 0 : "Sunday", 1 : "Monday", 2 : "Tuesday", 3 : "Wednesday",
-                 4 : "Thursday", 5 : "Friday", 6 : "Saturday"}
+        days = {0: "Sunday", 1: "Monday", 2: "Tuesday", 3: "Wednesday",
+                4: "Thursday", 5: "Friday", 6: "Saturday"}
 
         for day in p.schedule:
 

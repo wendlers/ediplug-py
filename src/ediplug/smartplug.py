@@ -123,6 +123,8 @@ class SmartPlug(object):
         self.auth = auth
         self.domi = getDOMImplementation()
 
+        self.log = log.getLogger("SmartPlug")
+
     def _xml_cmd_setget_state(self, cmdId, cmdStr):
 
         """
@@ -137,6 +139,8 @@ class SmartPlug(object):
         :return: XML representation of command
         """
 
+        assert (cmdId == "setup" and cmdStr in ["ON", "OFF"]) or (cmdId == "get" and cmdStr == "")
+
         doc = self.domi.createDocument(None, "SMARTPLUG", None)
         doc.documentElement.setAttribute("id", "edimax")
 
@@ -148,17 +152,24 @@ class SmartPlug(object):
 
         doc.documentElement.appendChild(cmd)
 
-        return doc.toxml()
+        xml = doc.toxml()
+        self.log.debug("Request: %s" % xml)
 
-    def _xml_cmd_get_power(self):
+        return xml
+
+    def _xml_cmd_get_pc(self, what):
 
         """
-        Get current power consumption (only SP2101W).
+        Get power or current consumption (only SP2101W).
 
-        :type self: object
-        :rtype: str
-        :return: XML representation of command
+        :type self:     object
+        :type what:     str
+        :rtype:         str
+        :param what:    What to retrieve: "NowPower" or "NowCurrent
+        :return:        XML representation of command
         """
+
+        assert what in ["NowPower", "NowCurrent"]
 
         doc = self.domi.createDocument(None, "SMARTPLUG", None)
         doc.documentElement.setAttribute("id", "edimax")
@@ -167,14 +178,15 @@ class SmartPlug(object):
         cmd.setAttribute("id", "get")
         pwr = doc.createElement("NOW_POWER")
         cmd.appendChild(pwr)
-        state = doc.createElement("Device.System.Power.NowCurrent")
+        state = doc.createElement("Device.System.Power.%s" % what)
         pwr.appendChild(state)
 
         doc.documentElement.appendChild(cmd)
 
-        print(doc.toxml())
+        xml = doc.toxml()
+        self.log.debug("Request: %s" % xml)
 
-        return doc.toxml()
+        return xml
 
     def _xml_cmd_get_info(self):
 
@@ -195,7 +207,10 @@ class SmartPlug(object):
         cmd.appendChild(si)
         doc.documentElement.appendChild(cmd)
 
-        return doc.toxml()
+        xml = doc.toxml()
+        self.log.debug("Request: %s" % xml)
+
+        return xml
 
     def _xml_cmd_get_sched(self):
 
@@ -218,7 +233,10 @@ class SmartPlug(object):
 
         doc.documentElement.appendChild(cmd)
 
-        return doc.toxml()
+        xml = doc.toxml()
+        self.log.debug("Request: %s" % xml)
+
+        return xml
 
     def _xml_cmd_set_sched(self, sched_days):
 
@@ -261,7 +279,10 @@ class SmartPlug(object):
 
         doc.documentElement.appendChild(cmd)
 
-        return doc.toxml()
+        xml = doc.toxml()
+        self.log.debug("Request: %s" % xml)
+
+        return xml
 
     def _post_xml(self, xml):
 
@@ -278,6 +299,9 @@ class SmartPlug(object):
         files = {'file': xml}
 
         res = req.post(self.url, auth=self.auth, files=files)
+
+        self.log.debug("Status code: %d" % res.status_code)
+        self.log.debug("Response: %s" % res.text)
 
         if res.status_code == req.codes.ok:
             dom = parseString(res.text)
@@ -313,7 +337,8 @@ class SmartPlug(object):
 
         res = req.post(self.url, auth=self.auth, files=files)
 
-        # print(res.text)
+        self.log.debug("Status code: %d" % res.status_code)
+        self.log.debug("Response: %s" % res.text)
 
         if res.status_code == req.codes.ok:
             return parseString(res.text)
@@ -389,22 +414,41 @@ class SmartPlug(object):
     def power(self):
 
         """
-        Get the current power consumption of the SmartPlug.
+        Get the power consumption of the SmartPlug (only SP2101W).
 
-        :type self: object
-        :rtype: tuple (str, float)
-        :return: tuple (lastToggleTime, current)
+        :type self:     object
+        :rtype:         tuple (str, float)
+        :return:        power consumption in W
         """
 
-        dom = self._post_xml_dom(self._xml_cmd_get_power())
+        dom = self._post_xml_dom(self._xml_cmd_get_pc("NowPower"))
 
         try:
-            ltt = dom.getElementsByTagName("Device.System.Power.LastToggleTime")[0].firstChild.nodeValue
-            cur = float(dom.getElementsByTagName("Device.System.Power.NowCurrent")[0].firstChild.nodeValue)
+            power = dom.getElementsByTagName("Device.System.Power.NowPower")[0].firstChild.nodeValue
         except:
             raise Exception("Failed to communicate with SmartPlug")
 
-        return ltt, cur
+        return power
+
+    @property
+    def current(self):
+
+        """
+        Get the current consumption of the SmartPlug (only SP2101W).
+
+        :type self:     object
+        :rtype:         tuple (str, float)
+        :return:        current consumption in A
+        """
+
+        dom = self._post_xml_dom(self._xml_cmd_get_pc("NowCurrent"))
+
+        try:
+            current = dom.getElementsByTagName("Device.System.Power.NowCurrent")[0].firstChild.nodeValue
+        except:
+            raise Exception("Failed to communicate with SmartPlug")
+
+        return current
 
     def _parse_schedule(self, sched):
 
@@ -570,12 +614,11 @@ class SmartPlug(object):
 
 if __name__ == "__main__":
 
-    # this turns on debugging from requests library
-    log.basicConfig(level=log.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
-
     usage = "%prog [options]"
 
     parser = par.OptionParser(usage)
+
+    parser.add_option("-v", "--verbose",  action="store_true", help="Print debug information")
 
     parser.add_option("-H", "--host",  default="172.16.100.75", help="Base URL of the SmartPlug")
     parser.add_option("-l", "--login",  default="admin", help="Login user to authenticate with SmartPlug")
@@ -584,7 +627,9 @@ if __name__ == "__main__":
     parser.add_option("-i", "--info",  action="store_true", help="Get plug information")
     parser.add_option("-g", "--get",  action="store_true", help="Get state of plug")
     parser.add_option("-s", "--set",  help="Set state of plug: ON or OFF")
-    parser.add_option("-w", "--power",  action="store_true", help="Get plug power consumption (only SP-2101W)")
+
+    parser.add_option("-w", "--power",  action="store_true", help="Get plug power consumption (only SP2101W)")
+    parser.add_option("-a", "--current",  action="store_true", help="Get plug current consumption (only SP2101W)")
 
     parser.add_option("-G", "--getsched", action="store_true", help="Get schedule from Plug")
     parser.add_option("-P", "--getschedpy", action="store_true", help="Get schedule from Plug as Python list")
@@ -592,12 +637,22 @@ if __name__ == "__main__":
 
     (options, args) = parser.parse_args()
 
+    # this turns on debugging
+    level = log.ERROR
+
+    if options.verbose:
+        level = log.DEBUG
+
+    log.basicConfig(level=level, format='%(asctime)s - %(levelname) 8s [%(module) 15s] - %(message)s')
+
     p = SmartPlug(options.host, (options.login, options.password))
 
     if options.info:
 
+        print("Plug info:\n")
         for i in sorted(p.info.items()):
-            print("%s: %s" % i)
+            print("- %s: %s" % i)
+        print("")
 
     if options.get:
 
@@ -609,7 +664,11 @@ if __name__ == "__main__":
 
     if options.power:
 
-        print("%s: %0.2f" % p.power)
+        print("%s W" % p.power)
+
+    if options.current:
+
+        print("%s A" % p.current)
 
     elif options.getsched:
 
@@ -626,7 +685,6 @@ if __name__ == "__main__":
 
     elif options.getschedpy:
 
-        # print(p.schedule.__str__().replace("{", "\n{").replace("}]", "}\n]"))
         print(p.schedule.__str__())
 
     elif options.setsched:

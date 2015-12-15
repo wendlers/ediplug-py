@@ -1,7 +1,7 @@
 ##
 # The MIT License (MIT)
 #
-# Copyright (c) 2014 Stefan Wendler
+# Copyright (c) 2015 Stefan Wendler
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -39,81 +39,92 @@ class SmartPlug(object):
 
     Usage example when used as library:
 
-    p = SmartPlug("172.16.100.75", ('admin', '1234'))
+        p = SmartPlug("172.16.100.75", ('admin', '1234'))
 
-    # get device info
-    print(p.info)
+        # get device info
+        print(p.info)
 
-    # change state of plug
-    p.state = "OFF"
-    p.state = "ON"
+        # change state of plug
+        p.state = "OFF"
+        p.state = "ON"
 
-    # query and print current state of plug
-    print(p.state)
+        # query and print current state of plug
+        print(p.state)
 
-    # get power consumption (only SP2101W)
-    print(p.power)
+        # get power consumption (only SP2101W)
+        print(p.power)
 
-    # get current consumption (only SP2101W)
-    print(p.current)
+        # get current consumption (only SP2101W)
+        print(p.current)
 
-    # read and print complete week schedule from plug
-    print(p.schedule.__str__())
+        # read and print complete week schedule from plug
+        print(p.schedule.__str__())
 
-    # write schedule for on day to plug (Saturday, 11:15 - 11:45)
-    p.schedule = {'state': u'ON', 'sched': [[[11, 15], [11, 45]]], 'day': 6}
+        # write schedule for on day to plug (Saturday, 11:15 - 11:45)
+        p.schedule = {'state': u'ON', 'sched': [[[11, 15], [11, 45]]], 'day': 6}
 
-    # write schedule for the whole week
-    p.schedule = [
-        {'state': u'ON', 'sched': [[[0, 3], [0, 4]]], 'day': 0},
-        {'state': u'ON', 'sched': [[[0, 10], [0, 20]], [[10, 16], [11, 55]],
-            [[15, 19], [15, 32]], [[21, 0], [23, 8]], [[23, 17], [23, 59]]], 'day': 1},
-        {'state': u'OFF', 'sched': [[[19, 59], [21, 1]]], 'day': 2},
-        {'state': u'OFF', 'sched': [[[20, 59], [21, 12]]], 'day': 3},
-        {'state': u'OFF', 'sched': [], 'day': 4},
-        {'state': u'OFF', 'sched': [[[0, 0], [0, 30]], [[11, 14], [14, 31]]], 'day': 5},
-        {'state': u'ON', 'sched': [[[1, 42], [2, 41]]], 'day': 6}]
+        # write schedule for the whole week
+        p.schedule = [
+            {'state': u'ON', 'sched': [[[0, 3], [0, 4]]], 'day': 0},
+            {'state': u'ON', 'sched': [[[0, 10], [0, 20]], [[10, 16], [11, 55]],
+                [[15, 19], [15, 32]], [[21, 0], [23, 8]], [[23, 17], [23, 59]]], 'day': 1},
+            {'state': u'OFF', 'sched': [[[19, 59], [21, 1]]], 'day': 2},
+            {'state': u'OFF', 'sched': [[[20, 59], [21, 12]]], 'day': 3},
+            {'state': u'OFF', 'sched': [], 'day': 4},
+            {'state': u'OFF', 'sched': [[[0, 0], [0, 30]], [[11, 14], [14, 31]]], 'day': 5},
+            {'state': u'ON', 'sched': [[[1, 42], [2, 41]]], 'day': 6}]
 
 
     Usage example when used as command line utility:
 
+    Get device info:
+
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -i
+
     turn plug on:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -s ON
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -s ON
 
     turn plug off:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -s OFF
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -s OFF
 
     get plug state:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -g
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -g
+
+    get power consumption (only SP2101W)
+
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -w
+
+    get current consumption (only SP2101W)
+
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -a
 
     get schedule of the whole week:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -G
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -G
 
     get schedule of the whole week as python array:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -P
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -P
 
     set schedule for one day:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -S
-        "{'state': u'ON', 'sched': [[[11, 0], [11, 45]]], 'day': 6}"
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -S
+            "{'state': u'ON', 'sched': [[[11, 0], [11, 45]]], 'day': 6}"
 
     set schedule for the whole week:
 
-    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -S "[
-        {'state': u'ON', 'sched': [[[1, 0], [1, 1]]], 'day': 0},
-        {'state': u'ON', 'sched': [[[2, 0], [2, 2]]], 'day': 1},
-        {'state': u'ON', 'sched': [[[3, 0], [3, 3]]], 'day': 2},
-        {'state': u'ON', 'sched': [[[4, 0], [4, 4]]], 'day': 3},
-        {'state': u'ON', 'sched': [[[5, 0], [5, 5]]], 'day': 4},
-        {'state': u'ON', 'sched': [[[6, 0], [6, 6]]], 'day': 5},
-        {'state': u'ON', 'sched': [[[7, 0], [7, 7]]], 'day': 6},
-        ]"
-
+        python smartplug.py -H 172.16.100.75 -l admin -p 1234 -S "[
+            {'state': u'ON', 'sched': [[[1, 0], [1, 1]]], 'day': 0},
+            {'state': u'ON', 'sched': [[[2, 0], [2, 2]]], 'day': 1},
+            {'state': u'ON', 'sched': [[[3, 0], [3, 3]]], 'day': 2},
+            {'state': u'ON', 'sched': [[[4, 0], [4, 4]]], 'day': 3},
+            {'state': u'ON', 'sched': [[[5, 0], [5, 5]]], 'day': 4},
+            {'state': u'ON', 'sched': [[[6, 0], [6, 6]]], 'day': 5},
+            {'state': u'ON', 'sched': [[[7, 0], [7, 7]]], 'day': 6},
+            ]"
     """
 
     def __init__(self, host, auth):

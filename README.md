@@ -1,10 +1,11 @@
 EDIPLUG-PY - Python Class for EDIMAX Smart Plug Switch SP-1101W
 ===============================================================
-12.09.2014 Stefan Wendler
+14.12.2015 Stefan Wendler
 sw@kaltpost.de
 
-Simple Python class to access a "EDIMAX Smart Plug Switch SP-1101W". Supports simple switching as well as programming
-the schedule of the plug. The class could be used as an API or as command line utility: 
+Simple Python class to access a "EDIMAX Smart Plug Switch SP1101W/SP2101W". Supports
+simple switching as well as programming the schedule of the plug and reading power and
+current consumption. The class could be used as an API or as command line utility:
 
 
 Requirements
@@ -38,6 +39,14 @@ Turn plug off:
 Get plug state:
 
     python smartplug.py -H 172.16.100.75 -l admin -p 1234 -g
+
+Get power consumption (only SP2101W)
+
+    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -w
+
+Get current consumption (only SP2101W)
+
+    python smartplug.py -H 172.16.100.75 -l admin -p 1234 -a
 
 Get schedule of the whole week (human readable):
 
@@ -75,6 +84,10 @@ Create plug object:
 
     p = SmartPlug("172.16.100.75", ('admin', '1234'))
 
+Get device info
+ 
+    print(p.info)
+
 Turn plug off: 
 
     p.state = "OFF"
@@ -86,6 +99,14 @@ Turn plug on:
 Query and print current state of plug:
 
     print(p.state)
+
+Get power consumption (only SP2101W)
+
+    print(p.power)
+
+Get current consumption (only SP2101W)
+
+    print(p.current)
 
 Read and print complete week schedule from plug:
 
@@ -128,6 +149,8 @@ Some more information on the plug and its XML API is provided on my website:
 Change Log
 ----------
 
+* 2015-12-15:   added 'power' and 'current' functionality (SP2101W only, thanks Robin Grundei
+                for the XML request/response and the testing).
 * 2015-10-28:	added 'info' property to get device info (thanks Andreas Kainz for the patch!)
 * 2014-12-27:	re-wrote scheduling to correct various scheduling bugs
 * 2014-09-12:	first version

@@ -143,7 +143,7 @@ class SmartPlug(object):
         self.domi = getDOMImplementation()
 
         # Make a request to detect if Authentication type is Digest
-        res = requests.head(self.url)
+        res = req.head(self.url)
         if res.headers['WWW-Authenticate'][0:6] == 'Digest':
             self.auth = HTTPDigestAuth(auth[0], auth[1])
 

@@ -32,8 +32,8 @@ Very simple example showing how to use the SmartPlug API query week schedule.
 # import plug API
 from ediplug.smartplug import SmartPlug
 
-# create plug object for plug with IP 172.16.100.75, login admin and password 1234
-p = SmartPlug("172.16.100.75", ('admin', '1234'))
+# create plug object for plug with given IP, login admin and password 1234
+p = SmartPlug("192.168.1.117", ('admin', '1234'))
 
 # helper to map numerical days to named days
 days = { 0 : "Sunday", 1 : "Monday", 2 : "Tuesday", 3 : "Wednesday",

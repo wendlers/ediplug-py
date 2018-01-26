@@ -32,8 +32,8 @@ Very simple example showing how to use the SmartPlug API to read some device inf
 # import plug API
 from ediplug.smartplug import SmartPlug
 
-# create plug object for plug with IP 172.16.100.75, login admin and password 1234
-p = SmartPlug("192.168.1.108", ("admin", "1234"))
+# create plug object for plug with given IP, login admin and password 1234
+p = SmartPlug("192.168.1.117", ("admin", "1234"))
 
 # device info is returned as dictonary
 for i in sorted(p.info.items()):

@@ -1,12 +1,18 @@
 EDIPLUG-PY - Python Class for EDIMAX Smart Plug Switch SP-1101W
 ===============================================================
-14.12.2015 Stefan Wendler
+2016-26-01 Stefan Wendler
 sw@kaltpost.de
 
 Simple Python class to access a "EDIMAX Smart Plug Switch SP1101W/SP2101W". Supports
 simple switching as well as programming the schedule of the plug and reading power and
 current consumption. The class could be used as an API or as command line utility:
 
+__Important note__: I think the library does not work with newest FW versions.
+Only FW versions which connect to EdiPlug App work. The ones connecting to EdiSmart
+use a different protocol. The latest versions working are:
+
+* SP1101W: v2.02
+* SP2101W: v2.03
 
 Requirements
 ------------
@@ -20,7 +26,7 @@ Use as command line utility
 
 General: 
 
-* To specify the hostname or IP addres of the plug us the `-H <host-or-ip>` parameter. 
+* To specify the hostname or IP address of the plug us the `-H <host-or-ip>` parameter. 
 * To pass along the login for the plug use `-l <login>`.
 * To set the password for the login user `-p <password>`
 
@@ -75,6 +81,17 @@ Set schedule for the whole week:
 
 Use as API
 ----------
+
+For reference, there are the following examples:
+
+* [turn the plug ON and OFF](https://github.com/wendlers/ediplug-py/blob/master/src/examples/sample_01.py)
+* [query week schedule](https://github.com/wendlers/ediplug-py/blob/master/src/examples/sample_02.py)
+* [set the schedule of one day](https://github.com/wendlers/ediplug-py/blob/master/src/examples/sample_03.py)
+* [set the schedule of one week](https://github.com/wendlers/ediplug-py/blob/master/src/examples/sample_04.py)
+* [read device info](https://github.com/wendlers/ediplug-py/blob/master/src/examples/sample_05.py)
+* [connect the plug to Blynk](https://github.com/wendlers/ediplug-py/blob/master/src/examples/sample_06.py)
+
+General API usage is as follows.
 
 Import: 
 
@@ -148,7 +165,7 @@ Some more information on the plug and its XML API is provided on my website:
 
 Change Log
 ----------
-
+* 2018-01-26:   added example on how to connect the plug with Blynk
 * 2015-12-15:   added 'power' and 'current' functionality (SP2101W only, thanks Robin Grundei
                 for the XML request/response and the testing).
 * 2015-10-28:	added 'info' property to get device info (thanks Andreas Kainz for the patch!)
